@@ -18,32 +18,24 @@ Epoch:17 pre-train loss:236.36203
 Epoch:18 pre-train loss:233.53771
 Epoch:19 pre-train loss:231.74922
 Epoch:20 pre-train loss:232.43035
-Epoch:1 loss(total/bce/con)=0.6894/0.6223/6.7125 lam=0.010 AUC:0.916 AUPR:0.820
-Epoch:2 loss(total/bce/con)=0.7572/0.6237/6.6758 lam=0.020 AUC:0.917 AUPR:0.823
-Epoch:3 loss(total/bce/con)=0.8224/0.6238/6.6185 lam=0.030 AUC:0.918 AUPR:0.819
-Epoch:4 loss(total/bce/con)=0.8815/0.6202/6.5331 lam=0.040 AUC:0.918 AUPR:0.829
-Epoch:5 loss(total/bce/con)=0.9437/0.6210/6.4537 lam=0.050 AUC:0.921 AUPR:0.833
-Epoch:6 loss(total/bce/con)=1.0038/0.6215/6.3723 lam=0.060 AUC:0.922 AUPR:0.837
-Epoch:7 loss(total/bce/con)=1.0576/0.6168/6.2974 lam=0.070 AUC:0.921 AUPR:0.834
-Epoch:8 loss(total/bce/con)=1.1131/0.6165/6.2079 lam=0.080 AUC:0.920 AUPR:0.828
-Epoch:9 loss(total/bce/con)=1.1672/0.6153/6.1329 lam=0.090 AUC:0.922 AUPR:0.835
-Epoch:10 loss(total/bce/con)=1.2158/0.6129/6.0288 lam=0.100 AUC:0.919 AUPR:0.832
-Epoch:11 loss(total/bce/con)=1.2030/0.6071/5.9596 lam=0.100 AUC:0.923 AUPR:0.840
-Epoch:12 loss(total/bce/con)=1.1913/0.6026/5.8875 lam=0.100 AUC:0.924 AUPR:0.842
-Epoch:13 loss(total/bce/con)=1.1843/0.5998/5.8452 lam=0.100 AUC:0.926 AUPR:0.847
-Epoch:14 loss(total/bce/con)=1.1763/0.5964/5.7995 lam=0.100 AUC:0.925 AUPR:0.838
-Epoch:15 loss(total/bce/con)=1.1641/0.5879/5.7623 lam=0.100 AUC:0.928 AUPR:0.851
-Epoch:16 loss(total/bce/con)=1.1549/0.5816/5.7334 lam=0.100 AUC:0.930 AUPR:0.851
-Epoch:17 loss(total/bce/con)=1.1527/0.5834/5.6927 lam=0.100 AUC:0.930 AUPR:0.855
-Epoch:18 loss(total/bce/con)=1.1502/0.5834/5.6679 lam=0.100 AUC:0.928 AUPR:0.847
-Epoch:19 loss(total/bce/con)=1.1437/0.5789/5.6482 lam=0.100 AUC:0.929 AUPR:0.851
-Epoch:20 loss(total/bce/con)=1.1444/0.5800/5.6439 lam=0.100 AUC:0.931 AUPR:0.855
-
-tensor([[0.3445],
-        [0.3927],
-        [0.2790],
-        ...,
-        [0.1763],
-        [0.1897],
-        [0.1801]], grad_fn=<SigmoidBackward0>)
-test_AUC:0.881 test_AUPR:0.764
+Epoch:1 loss(total/bce/con)=0.6894/0.6223/6.7125 lam=0.010 AUC:0.912 AUPR:0.793
+Epoch:2 loss(total/bce/con)=0.7550/0.6217/6.6674 lam=0.020 AUC:0.924 AUPR:0.844
+Epoch:3 loss(total/bce/con)=0.8194/0.6212/6.6075 lam=0.030 AUC:0.919 AUPR:0.836
+Epoch:4 loss(total/bce/con)=0.8793/0.6179/6.5351 lam=0.040 AUC:0.921 AUPR:0.840
+Epoch:5 loss(total/bce/con)=0.9425/0.6186/6.4789 lam=0.050 AUC:0.918 AUPR:0.831
+Epoch:6 loss(total/bce/con)=1.0034/0.6184/6.4158 lam=0.060 AUC:0.922 AUPR:0.836
+Epoch:7 loss(total/bce/con)=1.0531/0.6123/6.2973 lam=0.070 AUC:0.924 AUPR:0.839
+Epoch:8 loss(total/bce/con)=1.1141/0.6160/6.2255 lam=0.080 AUC:0.922 AUPR:0.844
+Epoch:9 loss(total/bce/con)=1.1573/0.6066/6.1192 lam=0.090 AUC:0.923 AUPR:0.839
+Epoch:10 loss(total/bce/con)=1.2133/0.6078/6.0547 lam=0.100 AUC:0.921 AUPR:0.838
+Epoch:11 loss(total/bce/con)=1.1986/0.6026/5.9607 lam=0.100 AUC:0.921 AUPR:0.837
+Epoch:12 loss(total/bce/con)=1.1898/0.5996/5.9014 lam=0.100 AUC:0.925 AUPR:0.841
+Epoch:13 loss(total/bce/con)=1.1839/0.5978/5.8609 lam=0.100 AUC:0.924 AUPR:0.838
+Epoch:14 loss(total/bce/con)=1.1768/0.5942/5.8256 lam=0.100 AUC:0.928 AUPR:0.850
+Epoch:15 loss(total/bce/con)=1.1703/0.5906/5.7964 lam=0.100 AUC:0.926 AUPR:0.847
+Epoch:16 loss(total/bce/con)=1.1584/0.5842/5.7416 lam=0.100 AUC:0.929 AUPR:0.853
+Epoch:17 loss(total/bce/con)=1.1583/0.5834/5.7487 lam=0.100 AUC:0.924 AUPR:0.842
+Epoch:18 loss(total/bce/con)=1.1495/0.5796/5.6981 lam=0.100 AUC:0.928 AUPR:0.853
+Epoch:19 loss(total/bce/con)=1.1502/0.5799/5.7033 lam=0.100 AUC:0.925 AUPR:0.844
+Epoch:20 loss(total/bce/con)=1.1415/0.5763/5.6528 lam=0.100 AUC:0.929 AUPR:0.852
+test_AUC:0.928 test_AUPR:0.852

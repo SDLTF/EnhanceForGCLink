@@ -51,13 +51,19 @@ torch.cuda.manual_seed(args.seed)
 np.random.seed(args.seed)
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-
 class GCLink(nn.Module):
     def __init__(self, encoder):
         super(GCLink, self).__init__()
         self.encoder = encoder
 
     def forward(self, data_feature, adj, train_data):
+        # ✅ 评估阶段：不用增强，跑一次原图
+        if not self.training:
+            embed, tf_embed, target_embed, pred = self.encoder(data_feature, adj, train_data)
+            # 为了不改外部解包逻辑，返回两份相同的
+            return embed, tf_embed, target_embed, pred, embed, tf_embed, target_embed, pred
+
+        # ✅ 训练阶段：照旧做增强
         index = adj.coalesce().indices()
         size = adj.coalesce().size()
 
@@ -67,7 +73,6 @@ class GCLink(nn.Module):
         adj1 = build_sparse_adj(edge_index1, edge_weight1, size, device)
         adj2 = build_sparse_adj(edge_index2, edge_weight2, size, device)
 
-        # 关键：用增强后的特征 x1/x2，而不是 data_feature
         embed1, tf_embed1, target_embed1, pred1 = self.encoder(x1, adj1, train_data)
         embed2, tf_embed2, target_embed2, pred2 = self.encoder(x2, adj2, train_data)
 
@@ -128,8 +133,9 @@ def pretrain(data_feature, adj, model, epochs=20):
 
         pre_train_loss = gnn_train(data_feature, adj1, adj2, model, optimizer, loss_fn)
 
-        scheduler.step()  # ✅ epoch 末尾 step
+        scheduler.step()
         print(f'Epoch:{epoch} pre-train loss:{pre_train_loss:.5f}')
+
 
 def train(model, contrast_model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.1):
     """
@@ -257,6 +263,8 @@ model = model.to(device)
 optimizer = Adam(model.parameters(), lr=args.lr)
 scheduler = StepLR(optimizer, step_size=1, gamma=0.99)
 loss_fn = torch.nn.BCEWithLogitsLoss()
+best_aupr = -1.0
+best_path = os.path.join(model_path, f"{args.cell_type}_best_model.pkl")
 
 for epoch in range(1, args.epochs + 1):
     avg_total, avg_bce, avg_con, lam = train(
@@ -281,12 +289,29 @@ for epoch in range(1, args.epochs + 1):
         f"AUC:{AUC:.3f} AUPR:{AUPR:.3f}"
     )
 
-    scheduler.step()  # 还是 epoch 末尾 step
+    if AUPR > best_aupr:
+        best_aupr = AUPR
+        torch.save(model.state_dict(), best_path)
 
-    # （可选）建议用 AUPR 保存模型，而不是 AUC
+    scheduler.step()
+
+# 用主训练的 best 跑 test
+model.load_state_dict(torch.load(best_path, map_location=device))
+model.eval()
+
+_, _, _, _, _, _, _, score_logits = model(data_feature, adj, test_data)
+
+if args.flag:
+    score = torch.softmax(score_logits, dim=1)
+else:
+    score = torch.sigmoid(score_logits)
+
+AUC, AUPR, AUPR_norm = Evaluation(y_pred=score, y_true=test_data[:, -1], flag=args.flag)
+print('best_val_AUPR:{:.3f}'.format(best_aupr))
+print('test_AUC:{:.3F}'.format(AUC), 'test_AUPR:{:.3F}'.format(AUPR))
 
 # Load best model and test
-model.load_state_dict(torch.load(model_path + '/' + args.cell_type + '_best_model' + '.pkl'))
+
 model.eval()
 
 _, _, _, _, _, _, _, score = model(data_feature, adj, test_data)
