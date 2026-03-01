@@ -1,0 +1,94 @@
+(gclink) D:\Code\GCLink>python GCLink_main.py -cell_type mESC -sample sample1
+feature shape  (1620, 421)
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:1 pre-train loss:332.39712
+Epoch:2 pre-train loss:268.90029
+Epoch:3 pre-train loss:268.29153
+Epoch:4 pre-train loss:269.85286
+Epoch:5 pre-train loss:267.21010
+Epoch:6 pre-train loss:270.01244
+Epoch:7 pre-train loss:267.45869
+Epoch:8 pre-train loss:267.92886
+Epoch:9 pre-train loss:268.36850
+Epoch:10 pre-train loss:268.04452
+Epoch:11 pre-train loss:266.89746
+Epoch:12 pre-train loss:267.71166
+Epoch:13 pre-train loss:267.79486
+Epoch:14 pre-train loss:267.90793
+Epoch:15 pre-train loss:268.53719
+Epoch:16 pre-train loss:267.52454
+Epoch:17 pre-train loss:269.35397
+Epoch:18 pre-train loss:269.82540
+Epoch:19 pre-train loss:269.78138
+Epoch:20 pre-train loss:270.19012
+Epoch:1 train loss:1565.55202 AUC:0.908 AUPR:0.789
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:2 train loss:1546.00661 AUC:0.911 AUPR:0.797
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:3 train loss:1545.25772 AUC:0.909 AUPR:0.784
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:4 train loss:1545.43765 AUC:0.910 AUPR:0.789
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:5 train loss:1545.05569 AUC:0.910 AUPR:0.791
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:6 train loss:1545.01425 AUC:0.909 AUPR:0.787
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:7 train loss:1545.44984 AUC:0.907 AUPR:0.768
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:8 train loss:1545.35657 AUC:0.911 AUPR:0.789
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:9 train loss:1545.10989 AUC:0.910 AUPR:0.796
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:10 train loss:1545.35635 AUC:0.911 AUPR:0.787
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:11 train loss:1545.16612 AUC:0.913 AUPR:0.801
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:12 train loss:1545.39356 AUC:0.910 AUPR:0.798
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:13 train loss:1545.47627 AUC:0.912 AUPR:0.800
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:14 train loss:1545.23751 AUC:0.911 AUPR:0.792
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:15 train loss:1545.22657 AUC:0.910 AUPR:0.793
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:16 train loss:1544.61397 AUC:0.910 AUPR:0.801
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:17 train loss:1544.91573 AUC:0.909 AUPR:0.798
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:18 train loss:1545.03991 AUC:0.911 AUPR:0.792
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:19 train loss:1545.04640 AUC:0.909 AUPR:0.785
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+Epoch:20 train loss:1544.74584 AUC:0.910 AUPR:0.792
+GCLink_main.py:269: FutureWarning: You are using `torch.load` with `weights_only=False` (the current default value), which uses the default pickle module implicitly. It is possible to construct malicious pickle data which will execute arbitrary code during unpickling (See https://github.com/pytorch/pytorch/blob/main/SECURITY.md#untrusted-models for more details). In a future release, the default value for `weights_only` will be flipped to `True`. This limits the functions that could be executed during unpickling. Arbitrary objects will no longer be allowed to be loaded via this mode unless they are explicitly allowlisted by the user via `torch.serialization.add_safe_globals`. We recommend you start setting `weights_only=True` for any use case where you don't have full control of the loaded file. Please open an issue on GitHub for any issues related to this experimental feature.
+  model.load_state_dict(torch.load(model_path + '/' + args.cell_type + '_best_model' + '.pkl'))
+C:\Users\31529\miniconda3\envs\gclink\lib\site-packages\torch_geometric\deprecation.py:26: UserWarning: 'dropout_adj' is deprecated, use 'dropout_edge' instead
+  warnings.warn(out)
+tensor([[0.5992],
+        [0.4935],
+        [0.5572],
+        ...,
+        [0.5305],
+        [0.0388],
+        [0.5624]], grad_fn=<SigmoidBackward0>)
+test_AUC:0.910 test_AUPR:0.790
