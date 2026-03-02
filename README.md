@@ -66,3 +66,97 @@
 * **原版最终 test**：AUC **0.910**，AUPR **0.790**
 * **优化后最终 test**：AUC **0.928**，AUPR **0.852**
 * **提升**：AUC **+0.018**，AUPR **+0.062**
+
+---
+# 3.2
+
+下面这段你可以直接写进工作汇报里：我把 **dot / bilinear / edge\_mlp** 三种 decoder 分别是什么、怎么计算 TF→Target 的打分（logit）、各自特点写清楚了，并且配上你这次实验的提升数据。
+
+---
+
+## Decoder 是什么（在 GCLink 里做什么）
+
+在 GCLink 的 link prediction 里，encoder 会分别得到 TF 节点向量 $u$ 和 target 基因向量 $v$（维度 $d$）。**decoder 的作用**就是把 $(u,v)$ 映射成一条边存在的打分（logit）$s(u,v)$，再经过 sigmoid 得到概率 $p=\sigma(s)$。
+
+
+## 1. dot decoder（基线）
+
+**定义：**
+
+$$
+s(u,v) = u^\top v
+$$
+
+也就是 embedding 的点积（dot product）。
+
+**特点：**
+
+* **无额外参数**，计算最简单；
+* 关系形式相对“线性/简单”，表达力有限；
+* 点积本身偏“对称相似性”，对有向关系（TF→Target）不一定最合适（虽然训练时输入方向固定也能学出差异，但 decoder 本身偏相似度）。
+
+**基线结果（dot）：**
+
+* test\_AUC = **0.928**
+* test\_AUPR = **0.852**&#x20;
+
+
+## 2. bilinear decoder
+
+**定义：**
+
+$$
+s(u,v) = u^\top W v
+$$
+
+其中 $W\in \mathbb{R}^{d\times d}$ 是可学习参数矩阵。
+
+**特点：**
+
+* 相比 dot，多了一个矩阵 $W$，能学习“TF→Target 的关系变换”；
+* **天然支持有向关系**：一般 $u^\top W v \neq v^\top W u$；
+* 表达力强于 dot，但仍属于“单层线性关系”。
+
+**结果**
+
+* test\_AUC = **0.928**
+* test\_AUPR = **0.855**&#x20;
+  **相对 dot 提升：**
+* test\_AUPR **+0.003**（0.852 → 0.855）
+* test\_AUC **+0.000**
+
+
+## 3. edge\_mlp decoder（边特征 + MLP）
+
+**定义：**先构造更丰富的边特征，再用小型 MLP 输出 logit：
+
+$$
+\phi(u,v)=\big[u,\; v,\; u\odot v,\; |u-v|\big]
+$$
+
+$$
+s(u,v)=\text{MLP}(\phi(u,v))
+$$
+
+其中：
+
+* $u\odot v$：逐元素乘（interaction）
+* $|u-v|$：逐元素差的绝对值（distance-like）
+
+**特点：**
+
+* 表达力最强：既包含原始向量，又包含交互项和差异项；
+* MLP 引入非线性，能拟合更复杂的 TF→Target 判别边界；
+* 计算略贵、参数更多，但在 GRN/link prediction 里常常能显著提高 AUPR。
+
+**结果**
+
+* best\_val\_AUPR = **0.872**
+* test\_AUC = **0.934**
+* test\_AUPR = **0.869**&#x20;
+  **相对 dot 提升：**
+* test\_AUPR **+0.017**（0.852 → 0.869，约 +2.0%）
+* test\_AUC **+0.006**（0.928 → 0.934）
+* best\_val\_AUPR **+0.020**（相对 bilinear/dot 都更高）
+
+总的来说，在保持 encoder 与训练设置一致的情况下，我们将 GCLink 的 link decoder 从基线 **dot（点积 $u^\top v$）**替换为 **bilinear（双线性 $u^\top W v$）**与 **edge\_mlp（边特征 $[u,v,u\odot v,|u-v|]$ + MLP）**。其中 **edge\_mlp** 带来显著提升：test\_AUPR 从 **0.852 提升到 0.869（+0.017）**，test\_AUC 从 **0.928 提升到 0.934（+0.006）**；bilinear 仅带来 test\_AUPR **+0.003** 的小幅收益。  &#x20;
