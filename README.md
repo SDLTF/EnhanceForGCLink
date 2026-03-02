@@ -4,11 +4,17 @@
 
 3.1 以前我们尝试了使用 HOLA(Hypergraph Consistency Learning with Relational Distillation) 去替换 GCLink 中对比学习的那一部分。然而结果不尽人意。HOLA 虽然给出了比较快的学习速度，但是 AUC 和 AUPR 相较于原版交友下滑。
 
+关键数据请看：`hola.txt`，`contra.txt`（对照组），`GCLink_main(hola).py`
+
+> 碎碎念：因为我是 3.2 才开始写这个的，所以 3.1 之前的事情我全忘了！
+> 但是有一说一 HOLA 跑的是真的快，我怀疑跟 HOLA 的“强压迫”式监督学习有关系
+> 吐槽：做了一天发现有 0 个作用哈哈哈
+
 ---
 
 # 3.1
 
-3.1 我们尝试对 GCLink 进行了如下改良：
+3.1 我尝试对 GCLink 进行了如下改良：
 
 ## A. 训练稳定性与收敛
 
@@ -19,6 +25,7 @@
 * **效果证据**：预训练 loss 明显更低、更能持续下降
   * 原版 pretrain：约 **266–270** 区间震荡
   * 优化后 pretrain：降到约 **232**（20 epoch）
+> 所以我说能不能让会写代码的人来写代码！为什么会犯这种问题！
 
 ### A2. 损失函数数值稳定
 
@@ -26,7 +33,7 @@
 * **理由**：更稳、更不容易出现数值/梯度问题；为 `pos_weight` 做准备。
 * **效果证据**：训练过程更稳定，后续加入对比 warm-up 后 BCE 可持续下降（见 C1 的 loss 分解）。
 
-## B. 对比学习/增强真正生效
+## B. 对比学习 / 增强真正生效
 
 ### B1. 修复增强逻辑 bug
 
@@ -37,7 +44,7 @@
 
 ### B2. 对比项权重策略
 
-* **改动**：`loss = bce + lam(epoch) * con_loss`，lam 从小逐步到目标（你用到 0.1）。
+* **改动**：`loss = bce + lam(epoch) * con_loss`，lam 从小逐步到目标（在这个例子中我用到的是 0.1）。
 * **理由**：避免对比项在前期压制监督 BCE，训练更稳。
 * **效果证据**：loss 分解显示 `bce` 逐步下降、`con` 也下降；total 上升来自 lam 增加，是合理现象。
 
@@ -47,6 +54,8 @@
 * **理由**：避免被“总 loss 上升”误导；能定位到底是哪一项导致波动。
 * **效果证据**：你看到 `bce` 从约 0.622 → 0.576 逐步下降，说明监督目标确实在学。
 
+> 还行！多少有了点东西！
+
 ## C. 评估与模型选择
 
 ### C1. 评估阶段禁用随机增强
@@ -54,109 +63,70 @@
 * **改动**：在 `GCLink.forward()` 加 `if not self.training:` 分支，eval/test 直接用原图，不做 EdgeRemoving。
 * **理由**：如果 eval 时还随机删边，val/test 会高度随机，甚至出现“val 高但 test 低”的假象。
 * **效果证据**：修复后 test 与 val 对齐，指标稳定。
-
+> 吐槽：再问一次到底是为什么要随机删边……
 
 ### C2. 正确保存并加载 “验证集最优” checkpoint 再跑 test
 
 * **改动**：在主训练 loop 中按 **val AUPR** 保存 best；训练结束 `load best` 再 test。
 * **理由**：避免加载到旧文件/预训练阶段文件/非最优 epoch 的模型，从而导致 test 被算歪。
 * **效果证据**：最终 test 达到与你 val 接近的水平（见下方最终对比）。
-
+> 这真是个隐藏 bug，说实话我很想把以前的 HOLA 再跑一次，我怀疑以前也有这个问题
 
 * **原版最终 test**：AUC **0.910**，AUPR **0.790**
 * **优化后最终 test**：AUC **0.928**，AUPR **0.852**
 * **提升**：AUC **+0.018**，AUPR **+0.062**
 
+详情代码请看：`GCLink_main(better).py`，`better.txt`。
+
 ---
 # 3.2
 
-下面这段你可以直接写进工作汇报里：我把 **dot / bilinear / edge\_mlp** 三种 decoder 分别是什么、怎么计算 TF→Target 的打分（logit）、各自特点写清楚了，并且配上你这次实验的提升数据。
+以下是今天干的事情
 
----
+## A. 把训练 loss 打印改成“可解释”的形式
 
-## Decoder 是什么（在 GCLink 里做什么）
+* 把原来只打印一个 `train loss`（而且容易是累加值）改成 `loss(total/bce/con)` + `lam`
+* **目的**：区分“监督 BCE”与“对比损失 con”的贡献，避免被 total loss 误导。
+* **结果**：确认了 total 上升主要来自 `lam` warmup，而 BCE 是在下降的（我的意思是训练是健康的）。
 
-在 GCLink 的 link prediction 里，encoder 会分别得到 TF 节点向量 $u$ 和 target 基因向量 $v$（维度 $d$）。**decoder 的作用**就是把 $(u,v)$ 映射成一条边存在的打分（logit）$s(u,v)$，再经过 sigmoid 得到概率 $p=\sigma(s)$。
+## B. 修复了评估阶段的关键问题
 
+* **核心改动**：在 `GCLink.forward()` 里加 `if not self.training:` 分支，让 **eval/test 直接用原图**，不做 EdgeRemoving 这种随机删边增强。
+* **目的**：避免 “val 看起来很高但 test 很低/不稳定” 的假象。
+* **结果**：修完后 val/test 对齐，test 结果稳定可信。
+> 吐槽：到底是为什么回想着在这种非常复杂的对应情况下做随机删边！我不理解！
 
-## 1. dot decoder（基线）
+## C. 修复了模型选择流程：真正保存并加载“验证集最优”的 checkpoint 再测 test
 
-**定义：**
+* 把保存 best 的逻辑放回主训练 loop（按 **val AUPR** 保存），训练结束 `load best` 再测试。同时避免了 `pretrain()` 误包含训练/测试导致 best 文件被覆盖的问题。
+* **结果**：最终 test 结果从“偏低/不可信”变成和 val 一致（说明流程正确，也说明 bug 给他修好了）。
+> 完蛋了！前一天的 bug 没修好！
 
-$$
-s(u,v) = u^\top v
-$$
+## D. 开始做 decoder ablation：新增 bilinear 和 edge\_mlp 两种 decoder
 
-也就是 embedding 的点积（dot product）。
+* **dot**：点积 $u^\top v$（原版）
+* **bilinear**：双线性 $u^\top W v$（因为考虑到基因和对应表达用有向边描述更好）
+* **edge\_mlp**：边特征 $[u,v,u\odot v,|u-v|]$ + MLP（更强的表达）
+* 结论是：**edge\_mlp > bilinear > dot**（这个提升在 val/test 都成立）。
+> 疑似 SD 同学实在想做点东西出来于是盯上了 decoder，很难想象明天 encoder 还会不会活着
 
-**特点：**
+## E. 继续“压榨 edge\_mlp”！
 
-* **无额外参数**，计算最简单；
-* 关系形式相对“线性/简单”，表达力有限；
-* 点积本身偏“对称相似性”，对有向关系（TF→Target）不一定最合适（虽然训练时输入方向固定也能学出差异，但 decoder 本身偏相似度）。
+大概是今天下午的事情，我把他的四位拓展到了六维！
 
-**基线结果（dot）：**
+* 边特征从 4 项扩展到 6 项：
+  $[u,v,u\odot v,|u-v|,u-v,u+v]$
+* MLP 从简单两层升级为更稳更强的结构：
+  `Linear -> LayerNorm -> ReLU -> Dropout -> Linear -> ReLU -> Dropout -> Linear(1)`
+* 同时修了 bilinear 分支缩进、并讨论了避免重复 test/避免不同 decoder 覆盖 best 文件名等工程细节。
 
-* test\_AUC = **0.928**
-* test\_AUPR = **0.852**&#x20;
+在当前配置下（修复评估 + best checkpoint + edge\_mlp 压榨/或同等版本）跑到：
 
-
-## 2. bilinear decoder
-
-**定义：**
-
-$$
-s(u,v) = u^\top W v
-$$
-
-其中 $W\in \mathbb{R}^{d\times d}$ 是可学习参数矩阵。
-
-**特点：**
-
-* 相比 dot，多了一个矩阵 $W$，能学习“TF→Target 的关系变换”；
-* **天然支持有向关系**：一般 $u^\top W v \neq v^\top W u$；
-* 表达力强于 dot，但仍属于“单层线性关系”。
-
-**结果**
-
-* test\_AUC = **0.928**
-* test\_AUPR = **0.855**&#x20;
-  **相对 dot 提升：**
-* test\_AUPR **+0.003**（0.852 → 0.855）
-* test\_AUC **+0.000**
+* `best_val_AUPR ≈ 0.855`
+* `test_AUC ≈ 0.929`
+* `test_AUPR ≈ 0.857`
+  并且 val/test 非常接近，说明泛化与评估流程可靠。
+> 跑的也确实感觉要慢了点。我们需要更强大的运行机器！
 
 
-## 3. edge\_mlp decoder（边特征 + MLP）
-
-**定义：**先构造更丰富的边特征，再用小型 MLP 输出 logit：
-
-$$
-\phi(u,v)=\big[u,\; v,\; u\odot v,\; |u-v|\big]
-$$
-
-$$
-s(u,v)=\text{MLP}(\phi(u,v))
-$$
-
-其中：
-
-* $u\odot v$：逐元素乘（interaction）
-* $|u-v|$：逐元素差的绝对值（distance-like）
-
-**特点：**
-
-* 表达力最强：既包含原始向量，又包含交互项和差异项；
-* MLP 引入非线性，能拟合更复杂的 TF→Target 判别边界；
-* 计算略贵、参数更多，但在 GRN/link prediction 里常常能显著提高 AUPR。
-
-**结果**
-
-* best\_val\_AUPR = **0.872**
-* test\_AUC = **0.934**
-* test\_AUPR = **0.869**&#x20;
-  **相对 dot 提升：**
-* test\_AUPR **+0.017**（0.852 → 0.869，约 +2.0%）
-* test\_AUC **+0.006**（0.928 → 0.934）
-* best\_val\_AUPR **+0.020**（相对 bilinear/dot 都更高）
-
-总的来说，在保持 encoder 与训练设置一致的情况下，我们将 GCLink 的 link decoder 从基线 **dot（点积 $u^\top v$）**替换为 **bilinear（双线性 $u^\top W v$）**与 **edge\_mlp（边特征 $[u,v,u\odot v,|u-v|]$ + MLP）**。其中 **edge\_mlp** 带来显著提升：test\_AUPR 从 **0.852 提升到 0.869（+0.017）**，test\_AUC 从 **0.928 提升到 0.934（+0.006）**；bilinear 仅带来 test\_AUPR **+0.003** 的小幅收益。  &#x20;
+详情代码请看：`better2.txt`，`betterEdgeMLP.txt`，`scGNNv1.py`，`scGNNv2.py`，`GCLink_main(better2).py`
