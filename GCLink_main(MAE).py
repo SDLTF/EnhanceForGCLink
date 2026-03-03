@@ -20,7 +20,7 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 import torch.nn as nn
-from scGNN2 import GENELink
+from scGNN_MAE import GENELink
 from utils import scRNADataset, load_data, adj2saprse_tensor, Evaluation
 import GCL.losses as L
 import GCL.augmentors as A
@@ -56,19 +56,20 @@ class GCLink(nn.Module):
         super(GCLink, self).__init__()
         self.encoder = encoder
 
-    def forward(self, data_feature, adj, train_data):
+    def forward(self, data_feature, adj, train_data, x_override=None):
         # ✅ 评估阶段：不用增强，跑一次原图
         if not self.training:
             embed, tf_embed, target_embed, pred = self.encoder(data_feature, adj, train_data)
             # 为了不改外部解包逻辑，返回两份相同的
             return embed, tf_embed, target_embed, pred, embed, tf_embed, target_embed, pred
-
+        
+        base_x = data_feature if x_override is None else x_override
         # ✅ 训练阶段：照旧做增强
         index = adj.coalesce().indices()
         size = adj.coalesce().size()
 
-        x1, edge_index1, edge_weight1 = aug1(data_feature, index)
-        x2, edge_index2, edge_weight2 = aug2(data_feature, index)
+        x1, edge_index1, edge_weight1 = aug1(base_x, index)
+        x2, edge_index2, edge_weight2 = aug2(base_x, index)
 
         adj1 = build_sparse_adj(edge_index1, edge_weight1, size, device)
         adj2 = build_sparse_adj(edge_index2, edge_weight2, size, device)
@@ -136,8 +137,12 @@ def pretrain(data_feature, adj, model, epochs=20):
         scheduler.step()
         print(f'Epoch:{epoch} pre-train loss:{pre_train_loss:.5f}')
 
+def sample_mask_idx(num_nodes, mask_ratio, device):
+    m = int(num_nodes * mask_ratio)
+    return torch.randperm(num_nodes, device=device)[:m]
 
-def train(model, contrast_model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.1):
+def train(model, mae_decoder, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.1, mask_ratio=0.3):
+
     """
     返回：
       avg_total, avg_bce, avg_con, lam
@@ -162,9 +167,22 @@ def train(model, contrast_model, optimizer, loss_fn, epoch, warmup_epochs=10, co
         else:
             train_y = train_y.to(device).view(-1, 1).float()
 
-        embed1, _, _, pred1, embed2, _, _, pred2 = model(data_feature, adj, train_x)
+        # teacher：原始特征（不mask）
+        embed_t, _, _, pred1, embed_t2, _, _, pred2 = model(data_feature, adj, train_x)
+        # 这里 embed_t 和 embed_t2 是两视图的 embed；我们用第一视图当 teacher
+        teacher = embed_t.detach()
 
-        con_loss = contrast_model(h1=embed1, h2=embed2)
+        # student：mask 节点特征后再过同一个 GCLink（仍然会做两视图增强）
+        N = data_feature.size(0)
+        mask_idx = sample_mask_idx(N, mask_ratio, device)
+
+        x_masked = data_feature.clone()
+        x_masked[mask_idx] = 0.0
+
+        embed_s, _, _, _, _, _, _, _ = model(data_feature, adj, train_x, x_override=x_masked)
+
+        recon = mae_decoder(embed_s)
+        con_loss = F.mse_loss(recon[mask_idx], teacher[mask_idx])
 
         # pred1/pred2 是 logits：直接用 BCEWithLogitsLoss
         loss_BCE1 = loss_fn(pred1, train_y)
@@ -225,7 +243,12 @@ test_data = torch.from_numpy(test_data)
 val_data = torch.from_numpy(validation_data)
 
 # Construct Model
-contrast_model = DualBranchContrast(loss=L.InfoNCE(tau=0.2), mode='L2L', intraview_negs=False).to(device)
+mae_decoder = nn.Sequential(
+    nn.Linear(args.hidden_dim[1], args.hidden_dim[1]),
+    nn.ReLU(),
+    nn.Linear(args.hidden_dim[1], args.hidden_dim[1]),
+).to(device)
+
 encoder = GENELink(input_dim=feature.size()[1],
                  hidden1_dim=args.hidden_dim[0],
                  hidden2_dim=args.hidden_dim[1],
@@ -269,9 +292,12 @@ best_path = os.path.join(model_path, f"{args.cell_type}_{args.Type}_best_model.p
 
 for epoch in range(1, args.epochs + 1):
     avg_total, avg_bce, avg_con, lam = train(
-        model, contrast_model, optimizer, loss_fn,
-        epoch=epoch, warmup_epochs=10, con_w=0.1
+        model, mae_decoder, optimizer, loss_fn,
+        epoch=epoch, warmup_epochs=10, con_w=0.1,
+        mask_ratio=0.3
     )
+
+
 
     model.eval()
     _, _, _, _, _, _, _, score_logits = model(data_feature, adj, validation_data)
