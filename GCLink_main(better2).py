@@ -20,7 +20,7 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 import torch.nn as nn
-from scGNN2 import GENELink
+from scGNNv2 import GENELink
 from utils import scRNADataset, load_data, adj2saprse_tensor, Evaluation
 import GCL.losses as L
 import GCL.augmentors as A
