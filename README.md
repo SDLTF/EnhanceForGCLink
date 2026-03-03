@@ -130,3 +130,10 @@
 
 
 详情代码请看：`better2.txt`，`betterEdgeMLP.txt`，`scGNNv1.py`，`scGNNv2.py`，`GCLink_main(better2).py`
+
+---
+# 3.3
+
+今天没有任何有效进展。
+
+正在尝试用 MAE 替换 Info。

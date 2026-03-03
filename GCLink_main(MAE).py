@@ -141,7 +141,7 @@ def sample_mask_idx(num_nodes, mask_ratio, device):
     m = int(num_nodes * mask_ratio)
     return torch.randperm(num_nodes, device=device)[:m]
 
-def train(model, mae_decoder, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.1, mask_ratio=0.3):
+def train(model, mae_decoder, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=100, mask_ratio=0.3):
 
     """
     返回：
@@ -150,11 +150,11 @@ def train(model, mae_decoder, optimizer, loss_fn, epoch, warmup_epochs=10, con_w
     model.train()
 
     # warmup：前 warmup_epochs 轮线性升到 con_w
-    if warmup_epochs <= 0:
-        lam = con_w
-    else:
-        lam = con_w * min(1.0, epoch / float(warmup_epochs))
-
+    # if warmup_epochs <= 0:
+    #     lam = con_w
+    # else:
+    #     lam = con_w * min(1.0, epoch / float(warmup_epochs))
+    lam = con_w
     total_sum, bce_sum, con_sum = 0.0, 0.0, 0.0
     nb = 0
 
@@ -182,7 +182,8 @@ def train(model, mae_decoder, optimizer, loss_fn, epoch, warmup_epochs=10, con_w
         embed_s, _, _, _, _, _, _, _ = model(data_feature, adj, train_x, x_override=x_masked)
 
         recon = mae_decoder(embed_s)
-        con_loss = F.mse_loss(recon[mask_idx], teacher[mask_idx])
+        con_loss = F.smooth_l1_loss(recon[mask_idx], teacher[mask_idx])
+
 
         # pred1/pred2 是 logits：直接用 BCEWithLogitsLoss
         loss_BCE1 = loss_fn(pred1, train_y)
@@ -244,10 +245,11 @@ val_data = torch.from_numpy(validation_data)
 
 # Construct Model
 mae_decoder = nn.Sequential(
-    nn.Linear(args.hidden_dim[1], args.hidden_dim[1]),
+    nn.Linear(args.hidden_dim[1], 256),  # 更高的维度
     nn.ReLU(),
-    nn.Linear(args.hidden_dim[1], args.hidden_dim[1]),
+    nn.Linear(256, args.hidden_dim[1]),  # 输出维度
 ).to(device)
+
 
 encoder = GENELink(input_dim=feature.size()[1],
                  hidden1_dim=args.hidden_dim[0],
@@ -293,7 +295,7 @@ best_path = os.path.join(model_path, f"{args.cell_type}_{args.Type}_best_model.p
 for epoch in range(1, args.epochs + 1):
     avg_total, avg_bce, avg_con, lam = train(
         model, mae_decoder, optimizer, loss_fn,
-        epoch=epoch, warmup_epochs=10, con_w=0.1,
+        epoch=epoch, warmup_epochs=10, con_w=100,
         mask_ratio=0.3
     )
 

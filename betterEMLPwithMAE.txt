@@ -1,0 +1,42 @@
+Epoch:1 pre-train loss:296.90324
+Epoch:2 pre-train loss:261.54912
+Epoch:3 pre-train loss:258.43849
+Epoch:4 pre-train loss:251.72306
+Epoch:5 pre-train loss:247.74736
+Epoch:6 pre-train loss:248.37937
+Epoch:7 pre-train loss:248.46710
+Epoch:8 pre-train loss:247.67913
+Epoch:9 pre-train loss:247.94915
+Epoch:10 pre-train loss:247.71148
+Epoch:11 pre-train loss:243.69330
+Epoch:12 pre-train loss:241.91663
+Epoch:13 pre-train loss:241.98857
+Epoch:14 pre-train loss:240.99053
+Epoch:15 pre-train loss:240.55627
+Epoch:16 pre-train loss:238.22764
+Epoch:17 pre-train loss:238.34440
+Epoch:18 pre-train loss:237.79530
+Epoch:19 pre-train loss:236.73278
+Epoch:20 pre-train loss:235.04101
+Epoch:1 loss(total/bce/con)=0.6274/0.6272/0.0132 lam=0.010 AUC:0.916 AUPR:0.817
+Epoch:2 loss(total/bce/con)=0.6260/0.6258/0.0133 lam=0.020 AUC:0.923 AUPR:0.834
+Epoch:3 loss(total/bce/con)=0.6234/0.6230/0.0131 lam=0.030 AUC:0.925 AUPR:0.845
+Epoch:4 loss(total/bce/con)=0.6238/0.6233/0.0130 lam=0.040 AUC:0.916 AUPR:0.818
+Epoch:5 loss(total/bce/con)=0.6198/0.6191/0.0133 lam=0.050 AUC:0.924 AUPR:0.841
+Epoch:6 loss(total/bce/con)=0.6221/0.6213/0.0131 lam=0.060 AUC:0.920 AUPR:0.832
+Epoch:7 loss(total/bce/con)=0.6211/0.6201/0.0131 lam=0.070 AUC:0.924 AUPR:0.842
+Epoch:8 loss(total/bce/con)=0.6164/0.6154/0.0126 lam=0.080 AUC:0.924 AUPR:0.839
+Epoch:9 loss(total/bce/con)=0.6143/0.6131/0.0129 lam=0.090 AUC:0.922 AUPR:0.836
+Epoch:10 loss(total/bce/con)=0.6118/0.6105/0.0128 lam=0.100 AUC:0.926 AUPR:0.846
+Epoch:11 loss(total/bce/con)=0.6132/0.6119/0.0131 lam=0.100 AUC:0.921 AUPR:0.828
+Epoch:12 loss(total/bce/con)=0.6129/0.6116/0.0128 lam=0.100 AUC:0.922 AUPR:0.834
+Epoch:13 loss(total/bce/con)=0.6111/0.6098/0.0127 lam=0.100 AUC:0.925 AUPR:0.833
+Epoch:14 loss(total/bce/con)=0.6080/0.6067/0.0126 lam=0.100 AUC:0.921 AUPR:0.835
+Epoch:15 loss(total/bce/con)=0.6067/0.6054/0.0127 lam=0.100 AUC:0.923 AUPR:0.843
+Epoch:16 loss(total/bce/con)=0.6046/0.6034/0.0130 lam=0.100 AUC:0.919 AUPR:0.836
+Epoch:17 loss(total/bce/con)=0.6065/0.6052/0.0131 lam=0.100 AUC:0.915 AUPR:0.835
+Epoch:18 loss(total/bce/con)=0.6082/0.6069/0.0134 lam=0.100 AUC:0.920 AUPR:0.838
+Epoch:19 loss(total/bce/con)=0.6018/0.6004/0.0134 lam=0.100 AUC:0.930 AUPR:0.852
+Epoch:20 loss(total/bce/con)=0.5998/0.5985/0.0135 lam=0.100 AUC:0.926 AUPR:0.845
+best_val_AUPR:0.852
+test_AUC:0.929 test_AUPR:0.854
