@@ -21,7 +21,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 import torch.nn as nn
 from scGNNv2 import GENELink
-from utils import scRNADataset, load_data, adj2saprse_tensor, Evaluation
+from utils2 import scRNADataset, load_data, adj2saprse_tensor, Evaluation
 # import GCL.losses as L
 import GCL.augmentors as A
 # from GCL.models import DualBranchContrast
@@ -60,7 +60,6 @@ class GCLink(nn.Module):
         # ✅ 评估阶段：不用增强，跑一次原图
         if not self.training:
             embed, tf_embed, target_embed, pred = self.encoder(data_feature, adj, train_data)
-            # 为了不改外部解包逻辑，返回两份相同的
             return embed, tf_embed, target_embed, pred, embed, tf_embed, target_embed, pred
 
         # ✅ 训练阶段：照旧做增强
@@ -166,8 +165,8 @@ def vicreg_loss(z1, z2, sim_coeff=25.0, std_coeff=25.0, cov_coeff=1.0, eps=1e-4)
     loss = sim_coeff * sim_loss + std_coeff * std_loss + cov_coeff * cov_loss
     return loss
 
-def train(model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.01,
-          vic_sim=25.0, vic_std=25.0, vic_cov=1.0):
+def train(model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.005,
+          vic_sim=25.0, vic_std=10.0, vic_cov=1.0):
     model.train()
 
     # warmup：前 warmup_epochs 轮线性升到 con_w
@@ -191,7 +190,9 @@ def train(model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.01,
         embed1, _, _, pred1, embed2, _, _, pred2 = model(data_feature, adj, train_x)
 
         con_loss = vicreg_loss(embed1, embed2, sim_coeff=vic_sim, std_coeff=vic_std, cov_coeff=vic_cov)
-        
+        if torch.isnan(embed1).any() or torch.isnan(embed2).any():
+            print("!!! NaN in embeddings at epoch", epoch)
+
 
         # pred1/pred2 是 logits：直接用 BCEWithLogitsLoss
         loss_BCE1 = loss_fn(pred1, train_y)
@@ -297,20 +298,28 @@ best_path = os.path.join(model_path, f"{args.cell_type}_{args.Type}_best_model.p
 for epoch in range(1, args.epochs + 1):
     avg_total, avg_bce, avg_con, lam = train(
         model, optimizer, loss_fn,
-        epoch=epoch, warmup_epochs=10, con_w=0.01,
-        vic_sim=25.0, vic_std=25.0, vic_cov=1.0
+        epoch=epoch, warmup_epochs=10, con_w=0.005,
+        vic_sim=25.0, vic_std=10.0, vic_cov=1.0
     )
 
 
     model.eval()
-    _, _, _, _, _, _, _, score_logits = model(data_feature, adj, validation_data)
+    with torch.no_grad():
+        _, _, _, score_logits, _, _, _, _ = model(data_feature, adj, validation_data)
+        n = validation_data.size(0)
+        score_logits = score_logits.view(-1)[:n]
+        score = torch.sigmoid(score_logits).view(-1)
 
-    if args.flag:
-        score = torch.softmax(score_logits, dim=1)
-    else:
-        score = torch.sigmoid(score_logits)
+        print(f"[val score] epoch={epoch} min={float(score.min()):.6f} max={float(score.max()):.6f} "
+            f"mean={float(score.mean()):.6f} std={float(score.std()):.6f}")
 
-    AUC, AUPR, AUPR_norm = Evaluation(y_pred=score, y_true=validation_data[:, -1], flag=args.flag)
+        AUC, AUPR, AUPR_norm = Evaluation(
+            y_pred=score,
+            y_true=validation_data[:, -1].view(-1),
+            flag=args.flag
+        )
+
+
 
     print(
         f"Epoch:{epoch} "
@@ -336,7 +345,18 @@ if args.flag:
 else:
     score = torch.sigmoid(score_logits)
 
-AUC, AUPR, AUPR_norm = Evaluation(y_pred=score, y_true=test_data[:, -1], flag=args.flag)
+print(f"[val score] epoch={epoch} "
+      f"min={float(score.min()):.6f} max={float(score.max()):.6f} "
+      f"mean={float(score.mean()):.6f} std={float(score.std()):.6f}")
+
+
+AUC, AUPR, AUPR_norm = Evaluation(
+    y_pred=score,                       # 保持在 GPU/CPU 都行，utils2 会处理
+    y_true=validation_data[:, -1],       # 和 debug 的 y_true 用同一个
+    flag=args.flag
+)
+
+
 print('best_val_AUPR:{:.3f}'.format(best_aupr))
 print('test_AUC:{:.3F}'.format(AUC), 'test_AUPR:{:.3F}'.format(AUPR))
 

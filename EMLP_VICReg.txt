@@ -1,0 +1,60 @@
+Epoch:1 pre-train loss:298.98822
+Epoch:2 pre-train loss:264.46692
+Epoch:3 pre-train loss:256.59492
+Epoch:4 pre-train loss:250.28210
+Epoch:5 pre-train loss:249.93308
+Epoch:6 pre-train loss:246.21969
+Epoch:7 pre-train loss:245.85241
+Epoch:8 pre-train loss:244.77238
+Epoch:9 pre-train loss:243.87574
+Epoch:10 pre-train loss:242.56783
+Epoch:11 pre-train loss:242.04178
+Epoch:12 pre-train loss:240.51575
+Epoch:13 pre-train loss:242.69878
+Epoch:14 pre-train loss:241.71142
+Epoch:15 pre-train loss:240.72395
+Epoch:16 pre-train loss:239.97891
+Epoch:17 pre-train loss:239.45845
+Epoch:18 pre-train loss:239.11745
+Epoch:19 pre-train loss:237.98909
+Epoch:20 pre-train loss:238.61474
+[val debug] epoch=1 logits_mean=-4.1115 logits_std=3.0617 pos=4273.0 total=14402
+Epoch:1 loss(total/bce/con)=0.6445/0.6350/18.8767 lam=0.001 AUC:0.918 AUPR:0.820
+[val debug] epoch=2 logits_mean=-3.9715 logits_std=3.7420 pos=4273.0 total=14402
+Epoch:2 loss(total/bce/con)=0.6549/0.6360/18.8572 lam=0.001 AUC:0.911 AUPR:0.798
+[val debug] epoch=3 logits_mean=-2.7596 logits_std=2.1301 pos=4273.0 total=14402
+Epoch:3 loss(total/bce/con)=0.6632/0.6350/18.8278 lam=0.002 AUC:0.912 AUPR:0.822
+[val debug] epoch=4 logits_mean=-3.4149 logits_std=2.7508 pos=4273.0 total=14402
+Epoch:4 loss(total/bce/con)=0.6717/0.6341/18.8275 lam=0.002 AUC:0.914 AUPR:0.814
+[val debug] epoch=5 logits_mean=-4.1088 logits_std=3.5363 pos=4273.0 total=14402
+Epoch:5 loss(total/bce/con)=0.6801/0.6331/18.7997 lam=0.003 AUC:0.916 AUPR:0.828
+[val debug] epoch=6 logits_mean=-3.4214 logits_std=2.4091 pos=4273.0 total=14402
+Epoch:6 loss(total/bce/con)=0.6875/0.6312/18.7794 lam=0.003 AUC:0.915 AUPR:0.832
+[val debug] epoch=7 logits_mean=-2.8822 logits_std=2.1379 pos=4273.0 total=14402
+Epoch:7 loss(total/bce/con)=0.6949/0.6293/18.7454 lam=0.003 AUC:0.853 AUPR:0.624
+[val debug] epoch=8 logits_mean=-2.5528 logits_std=2.3735 pos=4273.0 total=14402
+Epoch:8 loss(total/bce/con)=0.7048/0.6299/18.7253 lam=0.004 AUC:0.888 AUPR:0.751
+[val debug] epoch=9 logits_mean=-3.4991 logits_std=3.0822 pos=4273.0 total=14402
+Epoch:9 loss(total/bce/con)=0.7109/0.6267/18.7068 lam=0.005 AUC:0.918 AUPR:0.833
+[val debug] epoch=10 logits_mean=-3.0428 logits_std=3.3027 pos=4273.0 total=14402
+Epoch:10 loss(total/bce/con)=0.7177/0.6243/18.6845 lam=0.005 AUC:0.923 AUPR:0.844
+[val debug] epoch=11 logits_mean=-2.6048 logits_std=2.5354 pos=4273.0 total=14402
+Epoch:11 loss(total/bce/con)=0.7194/0.6261/18.6654 lam=0.005 AUC:0.924 AUPR:0.845
+[val debug] epoch=12 logits_mean=-2.6236 logits_std=2.3043 pos=4273.0 total=14402
+Epoch:12 loss(total/bce/con)=0.7210/0.6277/18.6574 lam=0.005 AUC:0.898 AUPR:0.790
+[val debug] epoch=13 logits_mean=-2.4722 logits_std=1.9919 pos=4273.0 total=14402
+Epoch:13 loss(total/bce/con)=0.7151/0.6220/18.6215 lam=0.005 AUC:0.913 AUPR:0.826
+[val debug] epoch=14 logits_mean=-2.8886 logits_std=2.1518 pos=4273.0 total=14402
+Epoch:14 loss(total/bce/con)=0.7145/0.6215/18.6155 lam=0.005 AUC:0.874 AUPR:0.697
+[val debug] epoch=15 logits_mean=-2.5184 logits_std=2.6949 pos=4273.0 total=14402
+Epoch:15 loss(total/bce/con)=0.7123/0.6193/18.6031 lam=0.005 AUC:0.902 AUPR:0.805
+[val debug] epoch=16 logits_mean=-2.2490 logits_std=2.5377 pos=4273.0 total=14402
+Epoch:16 loss(total/bce/con)=0.7146/0.6217/18.5920 lam=0.005 AUC:0.867 AUPR:0.705
+[val debug] epoch=17 logits_mean=-3.0411 logits_std=2.4177 pos=4273.0 total=14402
+Epoch:17 loss(total/bce/con)=0.7139/0.6209/18.5949 lam=0.005 AUC:0.911 AUPR:0.817
+[val debug] epoch=18 logits_mean=-2.3861 logits_std=2.1628 pos=4273.0 total=14402
+Epoch:18 loss(total/bce/con)=0.7131/0.6201/18.5886 lam=0.005 AUC:0.898 AUPR:0.808
+[val debug] epoch=19 logits_mean=-4.0310 logits_std=3.9309 pos=4273.0 total=14402
+Epoch:19 loss(total/bce/con)=0.7080/0.6151/18.5666 lam=0.005 AUC:0.909 AUPR:0.821
+[val debug] epoch=20 logits_mean=-2.6581 logits_std=2.2454 pos=4273.0 total=14402
+Epoch:20 loss(total/bce/con)=0.7092/0.6163/18.5743 lam=0.005 AUC:0.890 AUPR:0.797

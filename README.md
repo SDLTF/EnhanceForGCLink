@@ -142,3 +142,19 @@
 # 3.4
 
 今天停工。收拾东西准备回学校了。
+
+---
+# 3.7 
+今天尝试使用 VICReg 代替 Info。
+
+现在训练和评估流程是正常的。
+
+但 VICReg 在这个设置下并没有带来提升，而且显著引入了更大的指标波动，例如，这玩意在 epoch7/14/16 出现多次 AUPR 跌到 0.62~0.71 的“真波动”，不是之前 Evaluation 的假波动了。
+
+相比之下，原来的 InfoNCE到 epoch19/20 能稳定到 AUPR 0.853~0.855，明显更强。
+
+所以，如果目标是“替代 InfoNCE 且不掉点”，现在这版 VICReg 需要改的不是 con_w，而是 VICReg 的输入方式（用全节点 embedding 做 VICReg，会把大量与边任务无关的节点卷进来，影响 edge ranking）
+
+具体的东西，明天再修。
+
+详情请看 `utils2.py`，`GCLink_main_VICReg.py`，`EMLP_VICReg.txt`
