@@ -20,11 +20,11 @@ import torch.nn.functional as F
 from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 import torch.nn as nn
-from scGNN_MAE import GENELink
+from scGNNv2 import GENELink
 from utils import scRNADataset, load_data, adj2saprse_tensor, Evaluation
-import GCL.losses as L
+# import GCL.losses as L
 import GCL.augmentors as A
-from GCL.models import DualBranchContrast
+# from GCL.models import DualBranchContrast
 
 
 parser = argparse.ArgumentParser()
@@ -56,20 +56,19 @@ class GCLink(nn.Module):
         super(GCLink, self).__init__()
         self.encoder = encoder
 
-    def forward(self, data_feature, adj, train_data, x_override=None):
+    def forward(self, data_feature, adj, train_data):
         # ✅ 评估阶段：不用增强，跑一次原图
         if not self.training:
             embed, tf_embed, target_embed, pred = self.encoder(data_feature, adj, train_data)
             # 为了不改外部解包逻辑，返回两份相同的
             return embed, tf_embed, target_embed, pred, embed, tf_embed, target_embed, pred
-        
-        base_x = data_feature if x_override is None else x_override
+
         # ✅ 训练阶段：照旧做增强
         index = adj.coalesce().indices()
         size = adj.coalesce().size()
 
-        x1, edge_index1, edge_weight1 = aug1(base_x, index)
-        x2, edge_index2, edge_weight2 = aug2(base_x, index)
+        x1, edge_index1, edge_weight1 = aug1(data_feature, index)
+        x2, edge_index2, edge_weight2 = aug2(data_feature, index)
 
         adj1 = build_sparse_adj(edge_index1, edge_weight1, size, device)
         adj2 = build_sparse_adj(edge_index2, edge_weight2, size, device)
@@ -137,16 +136,38 @@ def pretrain(data_feature, adj, model, epochs=20):
         scheduler.step()
         print(f'Epoch:{epoch} pre-train loss:{pre_train_loss:.5f}')
 
-def sample_mask_idx(num_nodes, mask_ratio, device):
-    m = int(num_nodes * mask_ratio)
-    return torch.randperm(num_nodes, device=device)[:m]
+def off_diagonal(x: torch.Tensor) -> torch.Tensor:
+    # x: [D, D]
+    n, m = x.shape
+    assert n == m
+    return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
 
-def train(model, mae_decoder, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=100, mask_ratio=0.3):
+def vicreg_loss(z1, z2, sim_coeff=25.0, std_coeff=25.0, cov_coeff=1.0, eps=1e-4):
+    """
+    z1, z2: [N, D] (node embeddings from two augmented views)
+    """
+    # Invariance (MSE)
+    sim_loss = F.mse_loss(z1, z2)
 
-    """
-    返回：
-      avg_total, avg_bce, avg_con, lam
-    """
+    # Variance (avoid collapse)
+    z1 = z1 - z1.mean(dim=0)
+    z2 = z2 - z2.mean(dim=0)
+
+    std_z1 = torch.sqrt(z1.var(dim=0) + eps)
+    std_z2 = torch.sqrt(z2.var(dim=0) + eps)
+    std_loss = torch.mean(F.relu(1 - std_z1)) + torch.mean(F.relu(1 - std_z2))
+
+    # Covariance (decorrelate)
+    N, D = z1.shape
+    cov_z1 = (z1.T @ z1) / (N - 1)
+    cov_z2 = (z2.T @ z2) / (N - 1)
+    cov_loss = off_diagonal(cov_z1).pow_(2).sum().div(D) + off_diagonal(cov_z2).pow_(2).sum().div(D)
+
+    loss = sim_coeff * sim_loss + std_coeff * std_loss + cov_coeff * cov_loss
+    return loss
+
+def train(model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.01,
+          vic_sim=25.0, vic_std=25.0, vic_cov=1.0):
     model.train()
 
     # warmup：前 warmup_epochs 轮线性升到 con_w
@@ -154,7 +175,7 @@ def train(model, mae_decoder, optimizer, loss_fn, epoch, warmup_epochs=10, con_w
         lam = con_w
     else:
         lam = con_w * min(1.0, epoch / float(warmup_epochs))
-    # lam = con_w
+
     total_sum, bce_sum, con_sum = 0.0, 0.0, 0.0
     nb = 0
 
@@ -166,25 +187,11 @@ def train(model, mae_decoder, optimizer, loss_fn, epoch, warmup_epochs=10, con_w
             train_y = train_y.to(device)
         else:
             train_y = train_y.to(device).view(-1, 1).float()
-        # 先算监督（保持你原来的增强训练）
-        _, _, _, pred1, _, _, _, pred2 = model(data_feature, adj, train_x)
 
-        # ===== MAE：用同一张原图 adj，直接走 encoder，避免增强导致 teacher 漂移 =====
-        N = data_feature.size(0)
-        mask_idx = sample_mask_idx(N, mask_ratio, device)
+        embed1, _, _, pred1, embed2, _, _, pred2 = model(data_feature, adj, train_x)
 
-        x_masked = data_feature.clone()
-        x_masked[mask_idx] = data_feature[mask_idx] + 0.02 * torch.randn_like(data_feature[mask_idx])
-
-
-        with torch.no_grad():
-            teacher, _, _, _ = model.encoder(data_feature, adj, train_x)  # 不增强
-        teacher = teacher.detach()
-
-        student, _, _, _ = model.encoder(x_masked, adj, train_x)         # 不增强
-
-        recon = mae_decoder(student)
-        con_loss = 1 - F.cosine_similarity(recon[mask_idx], teacher[mask_idx], dim=1).mean()
+        con_loss = vicreg_loss(embed1, embed2, sim_coeff=vic_sim, std_coeff=vic_std, cov_coeff=vic_cov)
+        
 
         # pred1/pred2 是 logits：直接用 BCEWithLogitsLoss
         loss_BCE1 = loss_fn(pred1, train_y)
@@ -245,13 +252,7 @@ test_data = torch.from_numpy(test_data)
 val_data = torch.from_numpy(validation_data)
 
 # Construct Model
-mae_decoder = nn.Sequential(
-    nn.Linear(args.hidden_dim[1], 256),  # 更高的维度
-    nn.ReLU(),
-    nn.Linear(256, args.hidden_dim[1]),  # 输出维度
-).to(device)
-
-
+# contrast_model = DualBranchContrast(loss=L.InfoNCE(tau=0.2), mode='L2L', intraview_negs=False).to(device)
 encoder = GENELink(input_dim=feature.size()[1],
                  hidden1_dim=args.hidden_dim[0],
                  hidden2_dim=args.hidden_dim[1],
@@ -295,11 +296,10 @@ best_path = os.path.join(model_path, f"{args.cell_type}_{args.Type}_best_model.p
 
 for epoch in range(1, args.epochs + 1):
     avg_total, avg_bce, avg_con, lam = train(
-        model, mae_decoder, optimizer, loss_fn,
-        epoch=epoch, warmup_epochs=10, con_w=10.0,
-        mask_ratio=0.3
+        model, optimizer, loss_fn,
+        epoch=epoch, warmup_epochs=10, con_w=0.01,
+        vic_sim=25.0, vic_std=25.0, vic_cov=1.0
     )
-
 
 
     model.eval()

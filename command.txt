@@ -1,1 +1,3 @@
 python GCLink_main(hola).py -cell_type mESC -sample sample1
+python GCLink_main(MAE).py -cell_type mESC -sample sample1 -Type edge_mlp
+python GCLink_main(VICReg).py -cell_type mESC -sample sample1 -Type edge_mlp
