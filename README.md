@@ -158,3 +158,10 @@
 具体的东西，明天再修。
 
 详情请看 `utils2.py`，`GCLink_main_VICReg.py`，`EMLP_VICReg.txt`
+
+# 3.9
+我们抛弃了 VICReg 转向了 SimSiam，跑出了跟历史最高纪录几乎一样好的数据。
+
+现在开始微微调参。
+
+详情请看 `GCLink_main_SimSiam.py`，`SimSiam.txt`

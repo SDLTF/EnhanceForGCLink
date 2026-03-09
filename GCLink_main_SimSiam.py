@@ -21,11 +21,10 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import StepLR
 import torch.nn as nn
 from scGNNv2 import GENELink
-from utils2 import scRNADataset, load_data, adj2saprse_tensor, Evaluation
+from utils import scRNADataset, load_data, adj2saprse_tensor, Evaluation
 # import GCL.losses as L
 import GCL.augmentors as A
 # from GCL.models import DualBranchContrast
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 
 parser = argparse.ArgumentParser()
@@ -53,26 +52,15 @@ np.random.seed(args.seed)
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 class GCLink(nn.Module):
-    def __init__(self, encoder, proj_hidden=128, proj_out=128):
+    def __init__(self, encoder):
         super(GCLink, self).__init__()
         self.encoder = encoder
-
-        # VICReg projector head (recommended)
-        self.projector = nn.Sequential(
-            nn.Linear(args.hidden_dim[1], 128),
-            nn.BatchNorm1d(128),
-            nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, 128)
-        )
-
-
 
     def forward(self, data_feature, adj, train_data):
         # ✅ 评估阶段：不用增强，跑一次原图
         if not self.training:
             embed, tf_embed, target_embed, pred = self.encoder(data_feature, adj, train_data)
+            # 为了不改外部解包逻辑，返回两份相同的
             return embed, tf_embed, target_embed, pred, embed, tf_embed, target_embed, pred
 
         # ✅ 训练阶段：照旧做增强
@@ -89,6 +77,45 @@ class GCLink(nn.Module):
         embed2, tf_embed2, target_embed2, pred2 = self.encoder(x2, adj2, train_data)
 
         return embed1, tf_embed1, target_embed1, pred1, embed2, tf_embed2, target_embed2, pred2
+
+class SimSiamHead(nn.Module):
+    def __init__(self, in_dim, proj_dim=64, pred_dim=32):
+        super(SimSiamHead, self).__init__()
+
+        self.projector = nn.Sequential(
+            nn.Linear(in_dim, in_dim),
+            nn.BatchNorm1d(in_dim),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(in_dim, proj_dim),
+            nn.BatchNorm1d(proj_dim),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(proj_dim, proj_dim),
+            nn.BatchNorm1d(proj_dim, affine=False)
+        )
+
+        self.predictor = nn.Sequential(
+            nn.Linear(proj_dim, pred_dim),
+            nn.BatchNorm1d(pred_dim),
+            nn.ReLU(inplace=True),
+
+            nn.Linear(pred_dim, proj_dim)
+        )
+
+    def forward(self, z1, z2):
+        p1 = self.predictor(self.projector(z1))
+        p2 = self.predictor(self.projector(z2))
+
+        z1_detach = self.projector(z1).detach()
+        z2_detach = self.projector(z2).detach()
+
+        return p1, p2, z1_detach, z2_detach
+
+def simsiam_loss(p1, p2, z1, z2):
+    loss1 = -F.cosine_similarity(p1, z2, dim=1).mean()
+    loss2 = -F.cosine_similarity(p2, z1, dim=1).mean()
+    return 0.5 * (loss1 + loss2)
 
 def build_sparse_adj(edge_index, edge_weight, size, device):
     # edge_index: [2, E]
@@ -130,7 +157,6 @@ def gnn_train(data_feature, adj1, adj2, gnn_model, optimizer, loss_fn):
 
 def pretrain(data_feature, adj, model, epochs=20):
     optimizer = torch.optim.Adam(model.parameters(), lr=3e-3)
-    # scheduler = ReduceLROnPlateau(optimizer, 'min', patience=5, factor=0.5, verbose=True)
     scheduler = StepLR(optimizer, step_size=1, gamma=0.99)
     loss_fn = torch.nn.BCEWithLogitsLoss()
 
@@ -149,42 +175,14 @@ def pretrain(data_feature, adj, model, epochs=20):
         scheduler.step()
         print(f'Epoch:{epoch} pre-train loss:{pre_train_loss:.5f}')
 
-def off_diagonal(x: torch.Tensor) -> torch.Tensor:
-    # x: [D, D]
-    n, m = x.shape
-    assert n == m
-    return x.flatten()[:-1].view(n - 1, n + 1)[:, 1:].flatten()
-
-def vicreg_loss(z1, z2, sim_coeff=25.0, std_coeff=25.0, cov_coeff=1.0, eps=1e-4):
+def train(model, simsiam_head, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.1):
     """
-    z1, z2: [N, D] (node embeddings from two augmented views)
+    返回：
+      avg_total, avg_bce, avg_con, lam
     """
-    # Invariance (MSE)
-    sim_loss = F.mse_loss(z1, z2)
-
-    # Variance (avoid collapse)
-    z1 = z1 - z1.mean(dim=0)
-    z2 = z2 - z2.mean(dim=0)
-
-    std_z1 = torch.sqrt(z1.var(dim=0) + eps)
-    std_z2 = torch.sqrt(z2.var(dim=0) + eps)
-    std_loss = torch.mean(F.relu(1 - std_z1)) + torch.mean(F.relu(1 - std_z2))
-
-    # Covariance (decorrelate)
-    N, D = z1.shape
-    den = max(N - 1, 1)
-    cov_z1 = (z1.T @ z1) / den
-    cov_z2 = (z2.T @ z2) / den
-    cov_loss = off_diagonal(cov_z1).pow_(2).sum().div(D) + off_diagonal(cov_z2).pow_(2).sum().div(D)
-
-    loss = sim_coeff * sim_loss + std_coeff * std_loss + cov_coeff * cov_loss
-    return loss
-
-def train(model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.012,
-          vic_sim=25.0, vic_std=10.0, vic_cov=1.0):
     model.train()
+    simsiam_head.train()
 
-    # warmup：前 warmup_epochs 轮线性升到 con_w
     if warmup_epochs <= 0:
         lam = con_w
     else:
@@ -197,27 +195,15 @@ def train(model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.012,
         optimizer.zero_grad()
 
         if args.flag:
-            # 多分类时你原来怎么处理就保持；这里只写二分类分支为主
             train_y = train_y.to(device)
         else:
             train_y = train_y.to(device).view(-1, 1).float()
 
         embed1, _, _, pred1, embed2, _, _, pred2 = model(data_feature, adj, train_x)
 
-        tf_nodes = torch.unique(train_x[:, 0]).to(device)
-        if tf_nodes.numel() < 2:
-            continue
-        z1 = model.projector(embed1[tf_nodes])
-        z2 = model.projector(embed2[tf_nodes])
+        p1, p2, z1_detach, z2_detach = simsiam_head(embed1, embed2)
+        con_loss = simsiam_loss(p1, p2, z1_detach, z2_detach)
 
-        con_loss = vicreg_loss(z1, z2, sim_coeff=vic_sim, std_coeff=vic_std, cov_coeff=vic_cov)
-
-        
-        if torch.isnan(embed1).any() or torch.isnan(embed2).any():
-            print("!!! NaN in embeddings at epoch", epoch)
-
-
-        # pred1/pred2 是 logits：直接用 BCEWithLogitsLoss
         loss_BCE1 = loss_fn(pred1, train_y)
         loss_BCE2 = loss_fn(pred2, train_y)
         loss_bce = loss_BCE1 + loss_BCE2
@@ -225,7 +211,9 @@ def train(model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.012,
         loss_total = loss_bce + lam * con_loss
 
         loss_total.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+        torch.nn.utils.clip_grad_norm_(
+            list(model.parameters()) + list(simsiam_head.parameters()), 1.0
+        )
         optimizer.step()
 
         total_sum += float(loss_total.item())
@@ -237,6 +225,7 @@ def train(model, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.012,
     avg_bce = bce_sum / max(nb, 1)
     avg_con = con_sum / max(nb, 1)
     return avg_total, avg_bce, avg_con, lam
+
 
 
 # Load Data
@@ -276,7 +265,6 @@ test_data = torch.from_numpy(test_data)
 val_data = torch.from_numpy(validation_data)
 
 # Construct Model
-# contrast_model = DualBranchContrast(loss=L.InfoNCE(tau=0.2), mode='L2L', intraview_negs=False).to(device)
 encoder = GENELink(input_dim=feature.size()[1],
                  hidden1_dim=args.hidden_dim[0],
                  hidden2_dim=args.hidden_dim[1],
@@ -289,6 +277,13 @@ encoder = GENELink(input_dim=feature.size()[1],
                  type=args.Type,
                  reduction=args.reduction
                  ).to(device)
+
+simsiam_head = SimSiamHead(
+    in_dim=args.hidden_dim[1],
+    proj_dim=args.hidden_dim[1],
+    pred_dim=args.hidden_dim[2]
+).to(device)
+
 
 adj = adj.to(device)
 train_data = train_data.to(device)
@@ -308,12 +303,15 @@ pre_epochs = 20
 if pre_epochs > 0:
     pretrain(data_feature, adj, encoder, pre_epochs)
 
-model = GCLink(encoder=encoder, proj_hidden=128, proj_out=128)
-
+model = GCLink(encoder=encoder)
 model = model.to(device)
 
-optimizer = Adam(model.parameters(), lr=args.lr)
-scheduler = ReduceLROnPlateau(optimizer, mode='max', patience=5, factor=0.5)
+optimizer = Adam(
+    list(model.parameters()) + list(simsiam_head.parameters()),
+    lr=args.lr
+)
+
+scheduler = StepLR(optimizer, step_size=1, gamma=0.99)
 loss_fn = torch.nn.BCEWithLogitsLoss()
 best_aupr = -1.0
 # best_path = os.path.join(model_path, f"{args.cell_type}_best_model.pkl")
@@ -321,31 +319,20 @@ best_path = os.path.join(model_path, f"{args.cell_type}_{args.Type}_best_model.p
 
 for epoch in range(1, args.epochs + 1):
     avg_total, avg_bce, avg_con, lam = train(
-        model, optimizer, loss_fn,
-        epoch=epoch, warmup_epochs=30, con_w=0.015,
-        vic_sim=25.0, vic_std=7.0, vic_cov=4.0
+        model, simsiam_head, optimizer, loss_fn,
+        epoch=epoch, warmup_epochs=20, con_w=0.02
     )
 
 
     model.eval()
-    with torch.no_grad():
-        _, _, _, score_logits, _, _, _, _ = model(data_feature, adj, validation_data)
-        n = validation_data.size(0)
-        score_logits = score_logits.view(-1)[:n]
-        score = torch.sigmoid(score_logits).view(-1)
+    _, _, _, _, _, _, _, score_logits = model(data_feature, adj, validation_data)
 
-        print(f"[val score] epoch={epoch} min={float(score.min()):.6f} max={float(score.max()):.6f} "
-            f"mean={float(score.mean()):.6f} std={float(score.std()):.6f}")
+    if args.flag:
+        score = torch.softmax(score_logits, dim=1)
+    else:
+        score = torch.sigmoid(score_logits)
 
-        AUC, AUPR, AUPR_norm = Evaluation(
-            y_pred=score.view(-1),
-            y_true=validation_data[:, -1].view(-1),
-            flag=args.flag
-        )
-
-
-
-    scheduler.step(AUPR)
+    AUC, AUPR, AUPR_norm = Evaluation(y_pred=score, y_true=validation_data[:, -1], flag=args.flag)
 
     print(
         f"Epoch:{epoch} "
@@ -358,27 +345,22 @@ for epoch in range(1, args.epochs + 1):
         best_aupr = AUPR
         torch.save(model.state_dict(), best_path)
 
+    scheduler.step()
 
 # 用主训练的 best 跑 test
 model.load_state_dict(torch.load(best_path, map_location=device))
 model.eval()
 
-with torch.no_grad():
-    _, _, _, score_logits, _, _, _, _ = model(data_feature, adj, test_data)
-    n = test_data.size(0)
-    score_logits = score_logits.view(-1)[:n]
-    score = torch.sigmoid(score_logits).view(-1)
+_, _, _, _, _, _, _, score_logits = model(data_feature, adj, test_data)
 
-AUC, AUPR, AUPR_norm = Evaluation(
-    y_pred=score.view(-1),
-    y_true=test_data[:, -1].view(-1),
-    flag=args.flag
-)
+if args.flag:
+    score = torch.softmax(score_logits, dim=1)
+else:
+    score = torch.sigmoid(score_logits)
 
-
+AUC, AUPR, AUPR_norm = Evaluation(y_pred=score, y_true=test_data[:, -1], flag=args.flag)
 print('best_val_AUPR:{:.3f}'.format(best_aupr))
 print('test_AUC:{:.3F}'.format(AUC), 'test_AUPR:{:.3F}'.format(AUPR))
-
 
 # Load best model and test
 
