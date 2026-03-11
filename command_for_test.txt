@@ -1,0 +1,20 @@
+python Train_Test_Split.py --net Specific --data mHSC-E
+python GCLink_main_SimSiam_exam.py -cell_type mHSC-E -sample sample1 -Type edge_mlp
+
+python Train_Test_Split.py --net Specific --data mHSC-L
+python GCLink_main_SimSiam_exam.py -cell_type mHSC-L -sample sample1 -Type edge_mlp
+
+python Train_Test_Split.py --net Specific --data mHSC-GM
+python GCLink_main_SimSiam_exam.py -cell_type mHSC-GM -sample sample1 -Type edge_mlp
+
+python Train_Test_Split.py --net Specific --data mESC
+python GCLink_main_SimSiam_exam.py -cell_type mESC -sample sample1 -Type edge_mlp
+
+python Train_Test_Split.py --net Specific --data mDC
+python GCLink_main_SimSiam_exam.py -cell_type mDC -sample sample1 -Type edge_mlp
+
+python Train_Test_Split.py --net Specific --data hESC
+python GCLink_main_SimSiam_exam.py -cell_type hESC -sample sample1 -Type edge_mlp
+
+python Train_Test_Split.py --net Specific --data hHEP
+python GCLink_main_SimSiam_exam.py -cell_type hHEP -sample sample1 -Type edge_mlp

@@ -262,3 +262,6 @@ betterEdgeMLP
    * 原始 `edge_mlp`
 
 详情请看 `GCLink_main_SimSiam_exam.py`，`scGNNSimSiam.py`
+
+# 3.11
+今天开始跑数据了。
