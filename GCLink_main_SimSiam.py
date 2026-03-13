@@ -326,7 +326,9 @@ model_path = 'model'
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 
-run_name = f"{args.cell_type}_{args.sample}_{args.Type}_seed{args.seed}"
+# 在保存文件名中加入数据集名，便于区分 STRING / Non-Specific / Specific 实验
+dataset_tag = args.dataset.replace(' ', '')
+run_name = f"{dataset_tag}_tf{args.tf_num}_{args.cell_type}_{args.sample}_{args.Type}_seed{args.seed}"
 best_path = os.path.join(model_path, f"{run_name}_best_model.pkl")
 best_ckpt_path = os.path.join(model_path, f"{run_name}_best_checkpoint.pt")
 resume_path = args.resume_ckpt if args.resume_ckpt else best_ckpt_path
