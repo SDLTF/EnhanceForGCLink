@@ -1,0 +1,123 @@
+mHSC-E sample1
+
+test_AUPR:0.164
+
+mHSC-L sample1
+
+test_AUPR:0.176
+mHSC-GM sample1
+
+test_AUPR:0.276
+mESC sample1
+
+test_AUPR:0.092
+mDC sample1
+
+test_AUPR:0.129
+hESC sample1
+
+test_AUPR:0.032
+hHEP sample1
+
+test_AUPR:0.049
+PS D:\Code\GCLink> 
+
+mHSC-E sample2
+
+test_AUPR:0.150
+mHSC-L sample2
+
+test_AUPR:0.178
+mHSC-GM sample2
+
+test_AUPR:0.286
+mESC sample2
+
+test_AUPR:0.112
+mDC sample2
+
+test_AUPR:0.122
+hESC sample2
+
+test_AUPR:0.038
+hHEP sample2
+
+test_AUPR:0.054
+PS D:\Code\GCLink> 
+
+mHSC-E sample3
+
+test_AUPR:0.204
+mHSC-L sample3
+
+test_AUPR:0.114
+mHSC-GM sample3
+
+test_AUPR:0.322
+mESC sample3
+
+test_AUPR:0.100
+mDC sample3
+
+test_AUPR:0.164
+hESC sample3
+
+test_AUPR:0.033
+hHEP sample3
+
+test_AUPR:0.055
+PS D:\Code\GCLink> 
+mHSC-E sample4
+
+test_AUPR:0.143
+mHSC-L sample4
+
+test_AUPR:0.126
+mHSC-GM sample4
+
+test_AUPR:0.326
+mESC sample4
+
+test_AUPR:0.096
+mDC sample4
+
+test_AUPR:0.146
+hESC sample4
+test_AUPR:0.326
+mESC sample4
+
+test_AUPR:0.326
+mESC sample4
+
+test_AUPR:0.096
+mDC sample4
+
+test_AUPR:0.146
+hESC sample4
+
+test_AUPR:0.029
+hHEP sample4
+
+test_AUPR:0.046
+PS D:\Code\GCLink>
+mHSC-E sample5
+
+test_AUPR:0.181
+mHSC-L sample5
+
+test_AUPR:0.113
+mHSC-GM sample5
+
+test_AUPR:0.211
+mESC sample5
+
+test_AUPR:0.118
+mDC sample5
+
+test_AUPR:0.152
+hESC sample5
+
+test_AUPR:0.029
+hHEP sample5
+
+test_AUPR:0.051

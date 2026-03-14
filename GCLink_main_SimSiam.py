@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 
 import warnings
 warnings.filterwarnings("ignore", message=".*dropout_adj.*deprecated.*")
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -173,7 +174,7 @@ def pretrain(data_feature, adj, model, epochs=20):
         pre_train_loss = gnn_train(data_feature, adj1, adj2, model, optimizer, loss_fn)
 
         scheduler.step()
-        print(f'Epoch:{epoch} pre-train loss:{pre_train_loss:.5f}')
+        # print(f'Epoch:{epoch} pre-train loss:{pre_train_loss:.5f}')
 
 def train(model, simsiam_head, optimizer, loss_fn, epoch, warmup_epochs=10, con_w=0.1):
     """
@@ -229,19 +230,19 @@ def train(model, simsiam_head, optimizer, loss_fn, epoch, warmup_epochs=10, con_
 
 
 # Load Data
-exp_file = 'Specific Dataset/' + args.cell_type + '/TFs+1000/BL--ExpressionData.csv'
-tf_file = 'Specific Dataset/' + args.cell_type + '/TFs+1000/TF.csv'
+exp_file = 'Non-Specific Dataset/' + args.cell_type + '/TFs+1000/BL--ExpressionData.csv'
+tf_file = 'Non-Specific Dataset/' + args.cell_type + '/TFs+1000/TF.csv'
 
-train_file = 'Data/Specific/' + args.cell_type + ' 1000/' + args.sample + '/Train_set.csv'
-test_file = 'Data/Specific/' + args.cell_type + ' 1000/' + args.sample + '/Test_set.csv'
-val_file = 'Data/Specific/' + args.cell_type + ' 1000/' + args.sample + '/Validation_set.csv'
+train_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Train_set.csv'
+test_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Test_set.csv'
+val_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Validation_set.csv'
 
 # Normalization
 data_input = pd.read_csv(exp_file, index_col=0)
 loader = load_data(data_input)
 feature = loader.exp_data()    
 
-print('feature shape ', feature.shape)
+# print('feature shape ', feature.shape)
 
 tf = pd.read_csv(tf_file, index_col=0)['index'].values.astype(np.int64)
 
@@ -334,12 +335,12 @@ for epoch in range(1, args.epochs + 1):
 
     AUC, AUPR, AUPR_norm = Evaluation(y_pred=score, y_true=validation_data[:, -1], flag=args.flag)
 
-    print(
-        f"Epoch:{epoch} "
-        f"loss(total/bce/con)={avg_total:.4f}/{avg_bce:.4f}/{avg_con:.4f} "
-        f"lam={lam:.3f} "
-        f"AUC:{AUC:.3f} AUPR:{AUPR:.3f}"
-    )
+    # print(
+    #     f"Epoch:{epoch} "
+    #     f"loss(total/bce/con)={avg_total:.4f}/{avg_bce:.4f}/{avg_con:.4f} "
+    #     f"lam={lam:.3f} "
+    #     f"AUC:{AUC:.3f} AUPR:{AUPR:.3f}"
+    # )
 
     if AUPR > best_aupr:
         best_aupr = AUPR

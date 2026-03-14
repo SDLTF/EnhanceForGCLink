@@ -1,20 +1,39 @@
-python Train_Test_Split.py --net Specific --data mHSC-E
-python GCLink_main_SimSiam_exam.py -cell_type mHSC-E -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-E -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-L -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-GM -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mESC -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mDC -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hESC -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hHEP -sample sample1 -Type edge_mlp
 
-python Train_Test_Split.py --net Specific --data mHSC-L
-python GCLink_main_SimSiam_exam.py -cell_type mHSC-L -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-E -sample sample2 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-L -sample sample2 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-GM -sample sample2 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mESC -sample sample2 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mDC -sample sample2 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hESC -sample sample2 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hHEP -sample sample2 -Type edge_mlp
 
-python Train_Test_Split.py --net Specific --data mHSC-GM
-python GCLink_main_SimSiam_exam.py -cell_type mHSC-GM -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-E -sample sample3 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-L -sample sample3 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-GM -sample sample3 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mESC -sample sample3 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mDC -sample sample3 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hESC -sample sample3 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hHEP -sample sample3 -Type edge_mlp
 
-python Train_Test_Split.py --net Specific --data mESC
-python GCLink_main_SimSiam_exam.py -cell_type mESC -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-E -sample sample4 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-L -sample sample4 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-GM -sample sample4 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mESC -sample sample4 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mDC -sample sample4 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hESC -sample sample4 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hHEP -sample sample4 -Type edge_mlp
 
-python Train_Test_Split.py --net Specific --data mDC
-python GCLink_main_SimSiam_exam.py -cell_type mDC -sample sample1 -Type edge_mlp
-
-python Train_Test_Split.py --net Specific --data hESC
-python GCLink_main_SimSiam_exam.py -cell_type hESC -sample sample1 -Type edge_mlp
-
-python Train_Test_Split.py --net Specific --data hHEP
-python GCLink_main_SimSiam_exam.py -cell_type hHEP -sample sample1 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-E -sample sample5 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-L -sample sample5 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mHSC-GM -sample sample5 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mESC -sample sample5 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type mDC -sample sample5 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hESC -sample sample5 -Type edge_mlp
+python GCLink_main_SimSiam.py -cell_type hHEP -sample sample5 -Type edge_mlp
