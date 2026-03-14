@@ -12,8 +12,10 @@ warnings.filterwarnings("ignore", message=".*dropout_adj.*deprecated.*")
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ['CUDA_LAUNCH_BLOCKING'] = "0"
+# macOS 适配：移除 CUDA 相关设置
+if sys.platform != 'darwin':
+    os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+    os.environ['CUDA_LAUNCH_BLOCKING'] = "0"
 
 import torch
 from torch.utils.data import DataLoader
@@ -43,14 +45,37 @@ parser.add_argument('-flag', type=bool, default=False, help='the identifier whet
 parser.add_argument('-reduction', type=str, default='concate', help='how to integrate multihead attention')
 parser.add_argument('-sample', type=str, default='sample1', help='sample')
 parser.add_argument('-cell_type', type=str, default='hESC', help='cell_type')
+parser.add_argument(
+    '-dataset',
+    type=str,
+    default='STRING',
+    choices=['STRING', 'Non-Specific', 'Specific'],
+    help='dataset family: STRING, Non-Specific, or Specific'
+)
+parser.add_argument(
+    '-tf_num',
+    type=int,
+    default=1000,
+    choices=[500, 1000],
+    help='TF subset size used in folder names, e.g. 500 or 1000'
+)
+parser.add_argument('-resume', action='store_true', help='resume training from checkpoint')
+parser.add_argument('-resume_ckpt', type=str, default='', help='checkpoint path for resume')
 
 args = parser.parse_args()
 seed = args.seed
 random.seed(args.seed)
 torch.manual_seed(args.seed)
-torch.cuda.manual_seed(args.seed)
 np.random.seed(args.seed)
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+# macOS 适配：当前训练流程依赖 sparse COO 邻接，MPS 对该路径支持不完整，需回退 CPU
+if torch.cuda.is_available():
+    device = torch.device('cuda:0')
+elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+    print('MPS is available, but sparse COO ops are not fully supported in this pipeline. Falling back to CPU.')
+    device = torch.device('cpu')
+else:
+    device = torch.device('cpu')
 
 class GCLink(nn.Module):
     def __init__(self, encoder):
@@ -230,12 +255,28 @@ def train(model, simsiam_head, optimizer, loss_fn, epoch, warmup_epochs=10, con_
 
 
 # Load Data
+<<<<<<< HEAD
 exp_file = 'Non-Specific Dataset/' + args.cell_type + '/TFs+1000/BL--ExpressionData.csv'
 tf_file = 'Non-Specific Dataset/' + args.cell_type + '/TFs+1000/TF.csv'
 
 train_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Train_set.csv'
 test_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Test_set.csv'
 val_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Validation_set.csv'
+=======
+dataset_expr_dir = {
+    'STRING': 'STRING Dataset',
+    'Non-Specific': 'Non-Specific Dataset',
+    'Specific': 'Specific Dataset',
+}[args.dataset]
+
+exp_file = os.path.join(dataset_expr_dir, args.cell_type, f'TFs+{args.tf_num}', 'BL--ExpressionData.csv')
+tf_file = os.path.join(dataset_expr_dir, args.cell_type, f'TFs+{args.tf_num}', 'TF.csv')
+
+split_dir = os.path.join('Data', args.dataset, f'{args.cell_type} {args.tf_num}', args.sample)
+train_file = os.path.join(split_dir, 'Train_set.csv')
+test_file = os.path.join(split_dir, 'Test_set.csv')
+val_file = os.path.join(split_dir, 'Validation_set.csv')
+>>>>>>> 5a146565d9f8da0aa169683702dc46211822bfe1
 
 # Normalization
 data_input = pd.read_csv(exp_file, index_col=0)
@@ -295,13 +336,26 @@ model_path = 'model'
 if not os.path.exists(model_path):
     os.makedirs(model_path)
 
+# 在保存文件名中加入数据集名，便于区分 STRING / Non-Specific / Specific 实验
+dataset_tag = args.dataset.replace(' ', '')
+run_name = f"{dataset_tag}_tf{args.tf_num}_{args.cell_type}_{args.sample}_{args.Type}_seed{args.seed}"
+best_path = os.path.join(model_path, f"{run_name}_best_model.pkl")
+best_ckpt_path = os.path.join(model_path, f"{run_name}_best_checkpoint.pt")
+resume_path = args.resume_ckpt if args.resume_ckpt else best_ckpt_path
+can_resume = args.resume and os.path.exists(resume_path)
+
+if args.resume and not can_resume:
+    print(f"Resume checkpoint not found at {resume_path}, train from scratch.")
+
 # Data Augmentation
 aug1 = A.Identity()
 aug2 = A.EdgeRemoving(pe=0.2)
 
 # Pretrain encoder
 pre_epochs = 20
-if pre_epochs > 0:
+if can_resume:
+    print(f"Resume checkpoint found at {resume_path}, skip pretrain stage.")
+elif pre_epochs > 0:
     pretrain(data_feature, adj, encoder, pre_epochs)
 
 model = GCLink(encoder=encoder)
@@ -315,13 +369,30 @@ optimizer = Adam(
 scheduler = StepLR(optimizer, step_size=1, gamma=0.99)
 loss_fn = torch.nn.BCEWithLogitsLoss()
 best_aupr = -1.0
-# best_path = os.path.join(model_path, f"{args.cell_type}_best_model.pkl")
-best_path = os.path.join(model_path, f"{args.cell_type}_{args.Type}_best_model.pkl")
+best_epoch = 0
+start_epoch = 1
+warmup_epochs = 20
+con_w = 0.02
 
-for epoch in range(1, args.epochs + 1):
+if can_resume:
+    checkpoint = torch.load(resume_path, map_location=device)
+    model.load_state_dict(checkpoint['model_state_dict'])
+    if 'simsiam_head_state_dict' in checkpoint:
+        simsiam_head.load_state_dict(checkpoint['simsiam_head_state_dict'])
+    if 'optimizer_state_dict' in checkpoint:
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+    if 'scheduler_state_dict' in checkpoint:
+        scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
+
+    best_aupr = float(checkpoint.get('best_val_aupr', -1.0))
+    best_epoch = int(checkpoint.get('best_epoch', checkpoint.get('epoch', 0)))
+    start_epoch = int(checkpoint.get('epoch', 0)) + 1
+    print(f"Resume from {resume_path}: start_epoch={start_epoch}, best_aupr={best_aupr:.3f}")
+
+for epoch in range(start_epoch, args.epochs + 1):
     avg_total, avg_bce, avg_con, lam = train(
         model, simsiam_head, optimizer, loss_fn,
-        epoch=epoch, warmup_epochs=20, con_w=0.02
+        epoch=epoch, warmup_epochs=warmup_epochs, con_w=con_w
     )
 
 
@@ -342,14 +413,35 @@ for epoch in range(1, args.epochs + 1):
     #     f"AUC:{AUC:.3f} AUPR:{AUPR:.3f}"
     # )
 
-    if AUPR > best_aupr:
-        best_aupr = AUPR
-        torch.save(model.state_dict(), best_path)
-
     scheduler.step()
 
+    if AUPR > best_aupr:
+        best_aupr = float(AUPR)
+        best_epoch = epoch
+        torch.save(model.state_dict(), best_path)
+        torch.save(
+            {
+                'epoch': epoch,
+                'best_epoch': best_epoch,
+                'run_name': run_name,
+                'args': vars(args),
+                'model_state_dict': model.state_dict(),
+                'simsiam_head_state_dict': simsiam_head.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'scheduler_state_dict': scheduler.state_dict(),
+                'best_val_auc': float(AUC),
+                'best_val_aupr': float(AUPR),
+                'best_val_aupr_norm': float(AUPR_norm),
+            },
+            best_ckpt_path
+        )
+
 # 用主训练的 best 跑 test
-model.load_state_dict(torch.load(best_path, map_location=device))
+if not os.path.exists(best_ckpt_path):
+    raise RuntimeError(f"No best checkpoint found at {best_ckpt_path}.")
+
+best_checkpoint = torch.load(best_ckpt_path, map_location=device)
+model.load_state_dict(best_checkpoint['model_state_dict'])
 model.eval()
 
 _, _, _, _, _, _, _, score_logits = model(data_feature, adj, test_data)
@@ -359,9 +451,37 @@ if args.flag:
 else:
     score = torch.sigmoid(score_logits)
 
-AUC, AUPR, AUPR_norm = Evaluation(y_pred=score, y_true=test_data[:, -1], flag=args.flag)
+test_AUC, test_AUPR, test_AUPR_norm = Evaluation(y_pred=score, y_true=test_data[:, -1], flag=args.flag)
 print('best_val_AUPR:{:.3f}'.format(best_aupr))
-print('test_AUC:{:.3F}'.format(AUC), 'test_AUPR:{:.3F}'.format(AUPR))
+print('best_epoch:{}'.format(best_epoch))
+print('best_model_path:{}'.format(best_path))
+print('best_checkpoint_path:{}'.format(best_ckpt_path))
+print('test_AUC:{:.3F}'.format(test_AUC), 'test_AUPR:{:.3F}'.format(test_AUPR))
+
+results_dir = 'results'
+if not os.path.exists(results_dir):
+    os.makedirs(results_dir)
+
+results_file = os.path.join(results_dir, 'simsiam_run_metrics.csv')
+result_record = {
+    'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
+    'cell_type': args.cell_type,
+    'sample': args.sample,
+    'Type': args.Type,
+    'seed': args.seed,
+    'epochs': args.epochs,
+    'pretrain_epochs': pre_epochs,
+    'best_epoch': best_epoch,
+    'best_val_aupr': float(best_aupr),
+    'test_auc': float(test_AUC),
+    'test_aupr': float(test_AUPR),
+    'test_aupr_norm': float(test_AUPR_norm),
+    'best_model_path': best_path,
+    'best_checkpoint_path': best_ckpt_path,
+}
+write_header = not os.path.exists(results_file)
+pd.DataFrame([result_record]).to_csv(results_file, mode='a', header=write_header, index=False)
+print('result_csv:{}'.format(results_file))
 
 # Load best model and test
 

@@ -1,0 +1,18 @@
+name: pt12-mac
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pytorch=2.5.1
+  - torchvision=0.20.1
+  - torchaudio=2.5.1
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - pip
+  - pip:
+      - dgl==1.1.1
+      - pygcl==0.1.2
+      - torch-geometric==2.3.1
