@@ -48,8 +48,8 @@ parser.add_argument('-cell_type', type=str, default='hESC', help='cell_type')
 parser.add_argument(
     '-dataset',
     type=str,
-    default='STRING',
-    choices=['STRING', 'Non-Specific', 'Specific'],
+    default='Specific',
+    choices=['Non-Specific', 'Specific', 'STRING'],
     help='dataset family: STRING, Non-Specific, or Specific'
 )
 parser.add_argument(
@@ -255,18 +255,18 @@ def train(model, simsiam_head, optimizer, loss_fn, epoch, warmup_epochs=10, con_
 
 
 # Load Data
-<<<<<<< HEAD
 exp_file = 'Non-Specific Dataset/' + args.cell_type + '/TFs+1000/BL--ExpressionData.csv'
 tf_file = 'Non-Specific Dataset/' + args.cell_type + '/TFs+1000/TF.csv'
 
 train_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Train_set.csv'
 test_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Test_set.csv'
 val_file = 'Data/Non-Specific/' + args.cell_type + ' 1000/' + args.sample + '/Validation_set.csv'
-=======
+
 dataset_expr_dir = {
-    'STRING': 'STRING Dataset',
+    
     'Non-Specific': 'Non-Specific Dataset',
     'Specific': 'Specific Dataset',
+    'STRING': 'STRING Dataset',
 }[args.dataset]
 
 exp_file = os.path.join(dataset_expr_dir, args.cell_type, f'TFs+{args.tf_num}', 'BL--ExpressionData.csv')
@@ -276,7 +276,7 @@ split_dir = os.path.join('Data', args.dataset, f'{args.cell_type} {args.tf_num}'
 train_file = os.path.join(split_dir, 'Train_set.csv')
 test_file = os.path.join(split_dir, 'Test_set.csv')
 val_file = os.path.join(split_dir, 'Validation_set.csv')
->>>>>>> 5a146565d9f8da0aa169683702dc46211822bfe1
+
 
 # Normalization
 data_input = pd.read_csv(exp_file, index_col=0)
