@@ -6,7 +6,7 @@ import matplotlib as mpl
 # =========================
 # 1) 配置
 # =========================
-methods = ["SMLink", "GCLink", "GENELink", "CNNC", "GNE", "DeepSEM", "GENIE3", "GRNBoost2"]
+methods = ["SMLink", "GENELink", "CNNC", "GNE", "DeepSEM", "GENIE3", "GRNBoost2"]
 groups = ["Specific", "Non-Specific", "STRING"]
 datasets = ["mHSC-E", "mHSC-L", "mHSC-GM", "mESC", "mDC", "hESC", "hHEP"]
 
@@ -93,9 +93,9 @@ optimized_gclink = {
 }
 
 # =========================
-# 4) 插入新列
+# 4) 构造绘图数据
+#    删除原始 GCLink 列，只保留优化版 GCLink
 # =========================
-            # 插入新列
 plot_data = {}
 for setting in paper_data:
     plot_data[setting] = {}
@@ -104,19 +104,17 @@ for setting in paper_data:
         for ds in paper_data[setting][group]:
             old_vals = paper_data[setting][group][ds]
             plot_data[setting][group][ds] = [
-                optimized_gclink[setting][group][ds],   # 优化版 GCLink 放第一列
-                # old_vals[0],                           # 原始 GCLink
-                old_vals[1],                           # GENELink
-                old_vals[2],                           # CNNC
-                old_vals[3],                           # GNE
-                old_vals[4],                           # DeepSEM
-                old_vals[5],                           # GENIE3
-                old_vals[6],                           # GRNBoost2
+                optimized_gclink[setting][group][ds],   # 优化版 GCLink（SMLink）
+                old_vals[1],                            # GENELink
+                old_vals[2],                            # CNNC
+                old_vals[3],                            # GNE
+                old_vals[4],                            # DeepSEM
+                old_vals[5],                            # GENIE3
+                old_vals[6],                            # GRNBoost2
             ]
 
-
 # =========================
-# 5) 拼 DataFrame，保留分组空行
+# 5) 拼 DataFrame
 # =========================
 def build_df(setting_name):
     rows = []
@@ -126,7 +124,6 @@ def build_df(setting_name):
             rows.append(plot_data[setting_name][group][ds])
             idx.append(ds)
     return pd.DataFrame(rows, index=idx, columns=methods)
-
 
 df_1000 = build_df("TFs+1000")
 df_500 = build_df("TFs+500")
@@ -138,25 +135,24 @@ cmap = mpl.cm.Blues.copy()
 cmap.set_bad("#d9d9d9")
 
 # =========================
-# 7) 全局样式：尽量贴近原图
+# 7) 全局样式
 # =========================
 plt.rcParams.update({
     "font.family": "sans-serif",
     "font.size": 12,
 })
 
-fig = plt.figure(figsize=(14, 12), facecolor="#ffffff")
+fig = plt.figure(figsize=(13, 12), facecolor="#ffffff")
 
-# 主体区域更接近原图，给左侧组标签留足空间
-ax1 = fig.add_axes([0.22, 0.18, 0.335, 0.67])   # left, bottom, width, height
-ax2 = fig.add_axes([0.57, 0.18, 0.335, 0.67])
-cax = fig.add_axes([0.22, 0.10, 0.61, 0.02])
+ax1 = fig.add_axes([0.22, 0.18, 0.31, 0.67])
+ax2 = fig.add_axes([0.56, 0.18, 0.31, 0.67])
+cax = fig.add_axes([0.22, 0.10, 0.57, 0.02])
 
 def draw_panel(ax, df, title, show_group_labels=False, show_ylabels=True):
     ax.set_facecolor("#ececec")
     im = ax.imshow(df.values, cmap=cmap, vmin=0, vmax=1, aspect="auto", interpolation="none")
 
-    # 细白色分组分隔线
+    # 分组分隔线
     sep_positions = [6.5, 13.5]
     for y in sep_positions:
         ax.hlines(y, -0.5, df.shape[1] - 0.5, colors="white", linewidth=3, zorder=4)
@@ -185,14 +181,14 @@ def draw_panel(ax, df, title, show_group_labels=False, show_ylabels=True):
     # title
     ax.set_title(title, fontsize=20, fontweight="bold", pad=25)
 
-    # remove frame
+    # 去边框
     for s in ax.spines.values():
         s.set_visible(False)
 
-    # 找到 GCLink+ 这一列
+    # 找到优化列（SMLink）
     gclink_plus_col = list(df.columns).index("SMLink")
 
-    # 每一行的 SOTA 列
+    # 每一行的最优列
     sota_pos = {}
     for i in range(df.shape[0]):
         row = df.iloc[i].values.astype(float)
@@ -205,7 +201,7 @@ def draw_panel(ax, df, title, show_group_labels=False, show_ylabels=True):
     yellow = "#fff2a8"
     red = "#c40000"
 
-    # 先画 SOTA 背景
+    # 先画最优背景
     for i in range(df.shape[0]):
         if i not in sota_pos:
             continue
@@ -244,10 +240,8 @@ def draw_panel(ax, df, title, show_group_labels=False, show_ylabels=True):
 
     return im
 
-
 im = draw_panel(ax1, df_1000, "TFs+1000", show_group_labels=True, show_ylabels=True)
 draw_panel(ax2, df_500, "TFs+500", show_group_labels=False, show_ylabels=False)
-
 
 # colorbar
 cb = fig.colorbar(im, cax=cax, orientation="horizontal")
@@ -255,7 +249,6 @@ cb.set_ticks(np.linspace(0, 1, 6))
 cb.ax.tick_params(labelsize=16, width=2, length=5)
 cb.outline.set_linewidth(2)
 
-# 不再加长 caption，避免破坏原图风格
-plt.savefig("figure2_better_with_opt2.png", dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor())
-plt.savefig("figure2_better_with_opt2.pdf", bbox_inches="tight", facecolor=fig.get_facecolor())
+plt.savefig("figure2_without_original_gclink.png", dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor())
+plt.savefig("figure2_without_original_gclink.pdf", bbox_inches="tight", facecolor=fig.get_facecolor())
 plt.show()
